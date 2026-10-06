@@ -1,5 +1,4 @@
-# --- ETAPA 1: Compilacion del Binario Go ---
-FROM golang:1.24-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
