@@ -85,11 +85,9 @@ docker run -d --name node-api --network interseguro-network -p 4000:4000 interse
 cd ../go-api
 docker build -t interseguro-go-api .
 docker run -d --name go-api --network interseguro-network -p 3000:3000 \
-  -e PORT=3000 \
-  -e DATABASE_URL="postgresql://neondb_owner:npg_IACVv2Be4zSg@ep-cool-band-b506sy3m-pooler.c-7.us-east-2.aws.neon.tech/matrix_challenge_db?sslmode=require" \
-  -e NODE_API_URL="http://node-api:4000" \
-  -e JWT_SECRET="interseguro_challenge_secure_jwt_secret_key_2026" \
+  --env-file .env \
   interseguro-go-api
+
 
 # 4. Frontend React (:8080)
 cd ../frontend
