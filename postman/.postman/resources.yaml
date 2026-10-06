@@ -1,7 +1,0 @@
-# Use this workspace to collaborate
-workspace:
-  id: 997c2ef0-8b07-4166-857c-ac1de2066f6c
-
-localResources:
-  collections:
-    - ../Interseguro_Challenge.postman_collection.json

@@ -11,14 +11,25 @@ dist/
 
 # Variables de entorno secretas (no versionar credenciales reales)
 .env
+.env.local
 services/go-api/.env
 services/node-api/.env
+
+# Herramientas locales y CLI harness
+.rsc/
+.rsc.json
+.antigravity/
+01-TOOLS/_TEMPLATE/
+
+# Metadatos locales de Postman
+postman/.postman/
+postman/postman/
 
 # Logs y temporales
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+pnpm-debug.log*
 tmp/
 temp/
 .temp/
@@ -30,7 +41,3 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
-
-# Antigravity y Harness temporales
-.antigravity/rsc/
-.rsc/backups/
