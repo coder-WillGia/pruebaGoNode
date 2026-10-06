@@ -21,7 +21,6 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /go-api /app/go-api
 COPY .env.example /app/.env.example
-COPY ./frontend /app/frontend
 
 EXPOSE 3000
 

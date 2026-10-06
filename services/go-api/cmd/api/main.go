@@ -83,10 +83,9 @@ func main() {
 	catalogHandler.RegisterRoutes(protected)
 	processingHandler.RegisterRoutes(protected)
 
-	// Servir Frontend SPA Interactivo
-	app.Static("/", "../frontend")
-	app.Static("/", "./frontend")
-	app.Static("/", "../../services/frontend")
+	// Servir build estático de Frontend si existe
+	app.Static("/", "../../services/frontend/dist")
+	app.Static("/", "./frontend/dist")
 
 	// Iniciar Servidor
 	addr := ":" + cfg.Port
