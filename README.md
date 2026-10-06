@@ -1,65 +1,87 @@
-# Reto Técnico Interseguro - Factorización QR & Analítica Distribuida (Go + Node.js)
+# Reto Técnico Interseguro - Factorización QR & Analítica Distribuida
 
-Solución de arquitectura orientada a microservicios distribuidos para el procesamiento y análisis estadístico de matrices rectangulares utilizando **Go (Fiber)**, **Node.js (Express)**, **PostgreSQL (Neon Cloud)** y **Docker**.
+Solución de arquitectura orientada a microservicios distribuidos para el procesamiento y análisis estadístico de matrices rectangulares utilizando **Go (Fiber)**, **Node.js (Express)**, **React (Vite + Tailwind CSS)**, **PostgreSQL (Neon Cloud)** y **Docker**.
 
 ---
 
-## 🏛️ Arquitectura del Sistema
+## 🏛️ Arquitectura del Sistema (Hexagonal + Vertical Slices)
 
-El sistema implementa el patrón **Hexagonal Architecture + Vertical Slices (Screaming Architecture)** con separación estricta de responsabilidades:
+El proyecto implementa el patrón **Hexagonal Architecture + Vertical Slices (Screaming Architecture)** con separación estricta de responsabilidades:
 
 ```mermaid
 flowchart TD
-    Cliente["👤 Cliente (Postman / Frontend)"] -->|1. POST /api/v1/matrix/process| GoAPI["🚀 API 1: Go (Fiber) :3000\n(API Gateway, Cómputo QR y Persistencia)"]
+    Cliente["👤 Usuario (Frontend React / Postman)"] -->|1. POST /api/v1/matrix/process| GoAPI["🚀 API 1: Go (Fiber) :3000\n(API Gateway, Cómputo QR, Auth & Persistencia)"]
     
     subgraph "Microservicio 1: Go (Fiber)"
-        GoAPI <-->|Lee Catálogo / Guarda Auditoría| DB[("🗄️ PostgreSQL (Neon)\nmatrix_challenge_db")]
+        GoAPI <-->|Auto-Migración Idempotente & Auditoría| DB[("🗄️ PostgreSQL (Neon)\nmatrix_challenge_db")]
     end
     
     subgraph "Microservicio 2: Node.js (Express)"
-        NodeAPI["⚡ API 2: Node.js (Express) :4000\n(Stateless Analytics Engine)"]
+        NodeAPI["⚡ API 2: Node.js (Express) :4000\n(Stateless Analytics Engine - Sin BD)"]
     end
     
     GoAPI -->|2. POST /api/v1/matrix/analyze\nPayload: { q: [...], r: [...] }| NodeAPI
     NodeAPI -->|3. Retorna JSON de Estadísticas| GoAPI
-    GoAPI -->|4. Respuesta Consolidada Final| Cliente
+    GoAPI -->|4. Respuesta Consolidada Final + Auditoría| Cliente
 ```
 
-### 🎯 Responsabilidades por Servicio:
-1. **API 1: Go (Fiber) [Puerto 3000]**:
-   * Valida cualquier matriz rectangular $M \in \mathbb{R}^{m \times n}$ con $m \ge n$.
-   * Computa en memoria la **Factorización QR** ($M = Q \times R$) mediante el algoritmo de **Gram-Schmidt Modificado (MGS)**.
-   * Envía las matrices $Q$ y $R$ mediante HTTP `POST` a la API de Node.js.
-   * Administra la persistencia desacoplada en PostgreSQL (`matrix_challenge_db`).
-   * Consolida la respuesta final para el cliente.
+### 🎯 Responsabilidades por Microservicio:
 
-2. **API 2: Node.js (Express) [Puerto 4000]**:
-   * **100% Stateless**: No se conecta a la base de datos ni requiere credenciales.
-   * Calcula en memoria:
-     * **Valor máximo**
-     * **Valor mínimo**
-     * **Promedio (media)**
-     * **Suma total**
-     * **Verificación de matriz diagonal** (comprobación con tolerancia épsilon $\epsilon = 10^{-6}$).
+1. **Frontend (React 18 + Vite + Tailwind CSS + Lucide) [Puerto 5173 / 8080]**:
+   * **Bloque 1 (Auth Wall):** Pantalla obligatoria de inicio de sesión con JWT (`evaluador_interseguro` / `interseguro2026`).
+   * **Bloque 2 (Matrix Input Panel):** Cuadrícula dinámica interactiva ($m \times n$), editor JSON y dropdown con matrices del catálogo de la BD.
+   * **Bloque 3 (Visualizador de Matrices):** Renderizado de Matriz Original $A$, Matriz Ortogonal $Q$ y Matriz Triangular Superior $R$.
+   * **Bloque 4 (Tarjetas de Analítica):** Máximo, Mínimo, Promedio, Suma, Badge de Matriz Diagonal y Pestaña de Auditoría en tiempo real.
+
+2. **API 1: Go (Fiber) [Puerto 3000]**:
+   * **Cómputo en Memoria:** Factorización QR ($M = Q \times R$) mediante Gram-Schmidt Modificado (MGS) con tolerancia $\epsilon = 10^{-9}$ para matrices $m \ge n$.
+   * **API Gateway & Orquestación:** Llama a Node.js por HTTP y consolida la respuesta final.
+   * **Persistencia & Auditoría:** Único servicio conectado a PostgreSQL. Guarda en `matrix_operations` y `matrix_analytics` quién ejecutó la operación (`user_id`, `username`, fecha y tiempo de ejecución).
+   * **Auto-Migración Idempotente:** En el arranque verifica y crea tablas e índices solo si no existen (`IF NOT EXISTS` / `ON CONFLICT DO NOTHING`).
+
+3. **API 2: Node.js (Express con `pnpm`) [Puerto 4000]**:
+   * **100% Stateless:** No requiere base de datos ni credenciales.
+   * Calcula en memoria: Valor Máximo, Valor Mínimo, Promedio, Suma Total y Verificación de Matriz Diagonal ($\epsilon = 10^{-6}$).
 
 ---
 
-## 🚀 Cómo Ejecutar el Proyecto
+## 🚀 Cómo Ejecutar el Proyecto Localmente
 
-### Opción 1: Con Docker (Imágenes Individuales por Microservicio)
+### 1. Iniciar Microservicio Go (Puerto 3000)
+```powershell
+cd services/go-api
+.\dev.ps1
+```
+*(O con `go run cmd/api/main.go`)*.
 
-Para levantar el entorno idéntico a producción (como en Render, AWS o Railway):
+### 2. Iniciar Microservicio Node.js (Puerto 4000)
+```powershell
+cd services/node-api
+pnpm run dev
+```
+
+### 3. Iniciar Frontend React (Puerto 5173)
+```powershell
+cd services/frontend
+pnpm run dev
+```
+
+---
+
+## 🐳 Despliegue con Docker (Contenedores Individuales)
+
+Cada microservicio cuenta con su propio `Dockerfile` independiente y optimizado:
 
 ```bash
 # 1. Crear red interna de Docker
 docker network create interseguro-network
 
-# 2. Construir y correr Node.js API (:4000)
+# 2. Node.js API (:4000)
 cd services/node-api
 docker build -t interseguro-node-api .
 docker run -d --name node-api --network interseguro-network -p 4000:4000 interseguro-node-api
 
-# 3. Construir y correr Go API (:3000)
+# 3. Go API (:3000)
 cd ../go-api
 docker build -t interseguro-go-api .
 docker run -d --name go-api --network interseguro-network -p 3000:3000 \
@@ -69,7 +91,7 @@ docker run -d --name go-api --network interseguro-network -p 3000:3000 \
   -e JWT_SECRET="interseguro_challenge_secure_jwt_secret_key_2026" \
   interseguro-go-api
 
-# 4. Construir y correr Frontend React (:8080)
+# 4. Frontend React (:8080)
 cd ../frontend
 docker build -t interseguro-frontend .
 docker run -d --name frontend --network interseguro-network -p 8080:80 interseguro-frontend
@@ -77,98 +99,19 @@ docker run -d --name frontend --network interseguro-network -p 8080:80 intersegu
 
 ---
 
-### Opción 2: Ejecución Local en Desarrollo
-
-#### Terminal 1: Iniciar API de Node.js (Puerto 4000)
-```bash
-cd services/node-api
-pnpm install
-pnpm start
-```
-
-#### Terminal 2: Iniciar API de Go (Puerto 3000)
-```bash
-cd services/go-api
-go run cmd/api/main.go
-```
-
----
-
 ## 📬 Colección de Postman
 
-Dentro de la carpeta [`postman/`](./postman/) encontrarás el archivo listo para importar en Postman:
-* **Archivo:** `postman/Interseguro_Challenge.postman_collection.json`
-
-### Endpoints Principales:
+Importa el archivo [`postman/Interseguro_Challenge.postman_collection.json`](./postman/Interseguro_Challenge.postman_collection.json) directamente en Postman:
 
 | Método | Endpoint | Servicio | Descripción |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/matrix/process` | Go (:3000) | **Endpoint principal:** Recibe cualquier matriz, calcula QR, llama a Node y devuelve estadísticas |
-| `POST` | `/api/v1/matrix/process/:id` | Go (:3000) | Procesa una matriz guardada en BD por su UUID |
-| `GET` | `/api/v1/matrix/history` | Go (:3000) | Consulta el historial de matrices procesadas desde PostgreSQL |
-| `GET` | `/api/v1/matrices` | Go (:3000) | Lista el catálogo de matrices guardadas |
-| `POST` | `/api/v1/matrix/analyze` | Node (:4000) | Endpoint directo de Node.js para cómputo de estadísticas |
-| `POST` | `/api/v1/auth/login` | Go (:3000) | Generación de Bearer Token JWT |
-| `GET` | `/health` | Ambos | Verificación de estado de salud |
-
----
-
-## 🧪 Ejemplo de Payload y Respuesta
-
-### Petición a Go (`POST http://localhost:3000/api/v1/matrix/process`):
-```json
-{
-  "matrix": [
-    [12, -51, 4],
-    [6, 167, -68],
-    [-4, 24, -41]
-  ]
-}
-```
-
-### Respuesta Consolidada:
-```json
-{
-  "status": "success",
-  "message": "Factorización QR y análisis estadístico calculados exitosamente",
-  "data": {
-    "original_matrix": [
-      [12, -51, 4],
-      [6, 167, -68],
-      [-4, 24, -41]
-    ],
-    "dimensions": {
-      "rows": 3,
-      "cols": 3
-    },
-    "q": [
-      [0.857143, -0.394286, 0.331429],
-      [0.428571, 0.902857, -0.034286],
-      [-0.285714, 0.171429, 0.942857]
-    ],
-    "r": [
-      [14, 21, -14],
-      [0, 175, -70],
-      [0, 0, -35]
-    ],
-    "analysis": {
-      "stats": {
-        "max": 175,
-        "min": -70,
-        "average": 5.908333,
-        "sum": 106.35,
-        "total_elements": 18
-      },
-      "diagonal_check": {
-        "is_q_diagonal": false,
-        "is_r_diagonal": false,
-        "is_any_diagonal": false
-      }
-    },
-    "execution_time_ms": 0.45
-  }
-}
-```
+| `POST` | `/api/v1/matrix/process` | Go (:3000) | **Principal:** Recibe la matriz en JSON, calcula QR, llama a Node y devuelve estadísticas |
+| `POST` | `/api/v1/matrix/process/:id`| Go (:3000) | Procesa una matriz guardada en BD por su UUID |
+| `GET`  | `/api/v1/matrix/history` | Go (:3000) | Consulta el historial de auditoría desde PostgreSQL |
+| `GET`  | `/api/v1/matrices`       | Go (:3000) | Lista las matrices del catálogo en BD |
+| `POST` | `/api/v1/matrix/analyze` | Node (:4000) | Endpoint directo de Node.js para cálculo estadístico |
+| `POST` | `/api/v1/auth/login`     | Go (:3000) | Autenticación y generación de Bearer Token JWT |
+| `POST` | `/api/v1/auth/register`  | Go (:3000) | Registro dinámico de usuarios en la tabla `users` |
 
 ---
 
@@ -176,28 +119,40 @@ Dentro de la carpeta [`postman/`](./postman/) encontrarás el archivo listo para
 
 ```text
 pruebaGoNode/
+├── 00-SPECS/                       # Especificaciones técnicas SDD y contratos
+│   ├── 01-matrix-challenge-spec.md
+│   └── 02-implementation-changelog.md
+├── 01-TOOLS/                       # Herramientas y scripts de prueba
+│   └── test-matrix-pipeline/
+├── 02-DOCS/                        # Documentación wiki y decisiones (ADRs)
+│   └── wiki/
+│       ├── architecture.md
+│       └── sdd/constitution.md
+├── postman/                        # Colección de Postman lista para importar
+│   └── Interseguro_Challenge.postman_collection.json
 ├── services/
 │   ├── go-api/                     # Microservicio Go (Fiber)
-│   │   ├── cmd/api/main.go         # Bootstrap & Wireup
+│   │   ├── cmd/api/main.go         # Bootstrap
 │   │   ├── internal/
-│   │   │   ├── matrix_processing/  # Feature: Factorización QR & Orquestación
-│   │   │   ├── matrix_catalog/     # Feature: Catálogo de matrices en BD
-│   │   │   ├── auth/               # Feature: JWT & Usuarios
-│   │   │   └── shared/             # Config, DB pool, respuestas JSON
-│   │   ├── db/migrations/          # Scripts SQL de esquema
-│   │   └── Dockerfile              # Multi-stage build
+│   │   │   ├── matrix_processing/  # Factorización QR & Orquestación
+│   │   │   ├── matrix_catalog/     # Catálogo de matrices en BD
+│   │   │   ├── auth/               # JWT & Usuarios
+│   │   │   └── shared/             # Config, DB pool con AutoMigrate
+│   │   ├── db/migrations/          # Script DDL SQL idempotente
+│   │   ├── Dockerfile              # Multi-stage Alpine
+│   │   └── dev.ps1                 # Script de inicio rápido
 │   │
-│   └── node-api/                   # Microservicio Node.js (Express)
+│   ├── node-api/                   # Microservicio Node.js (Express con pnpm)
+│   │   ├── src/
+│   │   │   ├── modules/matrix-analytics/ # Max, Min, Promedio, Suma, Diagonal
+│   │   │   └── shared/             # Config env y middleware de errores
+│   │   ├── Dockerfile
+│   │   └── package.json
+│   │
+│   └── frontend/                   # Frontend React + Vite + Tailwind (pnpm)
 │       ├── src/
-│       │   ├── modules/
-│       │   │   ├── matrix-analytics/ # Feature: Max, Min, Avg, Sum, Diag
-│       │   │   └── health/           # Feature: Health check
-│       │   └── shared/               # Config env, middleware de errores
-│       └── Dockerfile
-│
-├── postman/
-│   └── Interseguro_Challenge.postman_collection.json
-├── docker-compose.yml
-├── .gitignore
+│       │   ├── components/         # Navbar, LoginScreen, MatrixInput, Visualizer, Analytics
+│       │   └── App.jsx
+│       └── Dockerfile              # Nginx alpine
 └── README.md
 ```
