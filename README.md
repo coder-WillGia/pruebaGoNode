@@ -66,8 +66,8 @@ docker compose up --build
 #### Terminal 1: Iniciar API de Node.js (Puerto 4000)
 ```bash
 cd services/node-api
-npm install
-npm start
+pnpm install
+pnpm start
 ```
 
 #### Terminal 2: Iniciar API de Go (Puerto 3000)

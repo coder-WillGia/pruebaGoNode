@@ -2,9 +2,12 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+# Instalar y habilitar pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-RUN npm ci --omit=dev
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile --prod
 
 COPY . .
 
