@@ -60,6 +60,7 @@ export function App() {
   const handleCalculate = async () => {
     setLoading(true);
     setError('');
+    setResult(null);
 
     try {
       const headers = { 'Content-Type': 'application/json' };
@@ -81,7 +82,7 @@ export function App() {
 
       setResult(json.data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Error de conexión con el backend de Go');
     } finally {
       setLoading(false);
     }
@@ -93,41 +94,47 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-sky-50 via-sky-100/60 to-blue-100/50 text-slate-800 relative overflow-hidden">
+      {/* Background Soft Glows */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-sky-300/30 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/2 -right-40 w-96 h-96 bg-blue-300/25 rounded-full blur-3xl pointer-events-none"></div>
+
       {/* 1. Barra Superior con Identidad del Usuario y Logout */}
       <Navbar user={user} onLogout={handleLogout} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-800 gap-3">
-          <button
-            onClick={() => setActiveTab('calculator')}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
-              activeTab === 'calculator'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Calculator className="h-4 w-4" />
-            <span>Calculadora QR & Analítica</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 flex items-center gap-2 transition ${
-              activeTab === 'history'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <History className="h-4 w-4" />
-            <span>Auditoría en Base de Datos</span>
-          </button>
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 relative z-10">
+        {/* Navigation Tabs (Centradas) */}
+        <div className="flex justify-center">
+          <div className="inline-flex p-1.5 bg-white/80 border border-sky-200/80 rounded-2xl shadow-sm backdrop-blur-md gap-2">
+            <button
+              onClick={() => setActiveTab('calculator')}
+              className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'calculator'
+                  ? 'bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 ring-2 ring-white'
+                  : 'text-slate-600 hover:text-sky-800 hover:bg-sky-50/80'
+              }`}
+            >
+              <Calculator className="h-4 w-4" />
+              <span>Calculadora QR & Analítica</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'history'
+                  ? 'bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 ring-2 ring-white'
+                  : 'text-slate-600 hover:text-sky-800 hover:bg-sky-50/80'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              <span>Auditoría en Base de Datos</span>
+            </button>
+          </div>
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 shrink-0" />
-            <span>{error}</span>
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-3 shadow-sm">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-rose-500" />
+            <span className="font-medium">{error}</span>
           </div>
         )}
 
@@ -158,12 +165,12 @@ export function App() {
                   <MatrixVisualizer result={result} />
                 </>
               ) : (
-                <div className="bg-slate-900 border border-dashed border-slate-800 rounded-2xl p-16 text-center space-y-3">
-                  <div className="h-16 w-16 mx-auto rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-500 text-2xl">
-                    <Calculator className="h-8 w-8 text-slate-600" />
+                <div className="bg-white/80 border border-dashed border-sky-200 rounded-3xl p-16 text-center space-y-3 shadow-sm backdrop-blur-sm">
+                  <div className="h-16 w-16 mx-auto rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 text-2xl shadow-inner">
+                    <Calculator className="h-8 w-8 text-sky-600" />
                   </div>
-                  <h3 className="font-bold text-slate-300 text-base">Listo para calcular</h3>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  <h3 className="font-bold text-slate-800 text-base">Listo para calcular</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
                     Ajusta los valores de la matriz en el panel izquierdo y presiona el botón para computar la Factorización QR en Go y el análisis en Node.js.
                   </p>
                 </div>

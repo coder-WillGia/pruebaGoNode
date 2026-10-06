@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, AlertCircle, Loader2, Layers, ShieldCheck, Sparkles } from 'lucide-react';
+import { Lock, User, AlertCircle, Loader2, Layers, ShieldCheck } from 'lucide-react';
 import { API_BASE } from '../config/env.js';
 
 export function LoginScreen({ onAuthSuccess }) {
@@ -47,77 +47,78 @@ export function LoginScreen({ onAuthSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-sky-50 via-sky-100 to-blue-100 p-4 relative overflow-hidden">
+      {/* Background Ambient Sky Glows */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-sky-300/40 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-300/40 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="max-w-md w-full space-y-8 relative z-10 animate-in fade-in zoom-in-95 duration-300">
+      <div className="max-w-md w-full space-y-6 relative z-10 animate-in fade-in zoom-in-95 duration-300">
         
-        {/* Branding & Title */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex h-16 w-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 items-center justify-center shadow-2xl shadow-indigo-500/30 mb-2">
+        {/* Branding & Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex h-16 w-16 rounded-2xl bg-gradient-to-tr from-sky-500 via-sky-600 to-blue-600 items-center justify-center shadow-xl shadow-sky-500/25 mb-1 ring-4 ring-white">
             <Layers className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
             Interseguro Matrix Pipeline
           </h1>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            Factorización QR en Go (Fiber), Analítica en Node.js (Express) y Persistencia en PostgreSQL
+          <p className="text-xs text-sky-800/80 font-medium max-w-xs mx-auto">
+            Factorización QR en Go, Analítica en Node.js y Persistencia en PostgreSQL
           </p>
         </div>
 
-        {/* Auth Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        {/* Auth Glass Card */}
+        <div className="bg-white/90 border border-sky-100 rounded-3xl p-8 shadow-2xl shadow-sky-900/10 backdrop-blur-md space-y-5">
+          <div className="flex items-center justify-between border-b border-sky-100 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-slate-900">
                 {mode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 {mode === 'login' ? 'Ingresa tus credenciales para acceder' : 'Regístrate para auditar tus cálculos'}
               </p>
             </div>
-            <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+            <span className="p-2.5 rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
               <ShieldCheck className="h-5 w-5" />
             </span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
                 Nombre de Usuario
               </label>
               <div className="relative">
-                <User className="h-4 w-4 text-slate-500 absolute left-3.5 top-3.5" />
+                <User className="h-4 w-4 text-sky-600/70 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="evaluador_interseguro"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs font-medium text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none transition shadow-inner"
+                  placeholder={mode === 'login' ? 'evaluador_interseguro' : 'Ej: nuevo_usuario'}
+                  className="w-full bg-sky-50/60 border border-sky-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none transition shadow-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5">
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="h-4 w-4 text-slate-500 absolute left-3.5 top-3.5" />
+                <Lock className="h-4 w-4 text-sky-600/70 absolute left-3.5 top-3.5" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs font-medium text-slate-100 placeholder-slate-600 focus:border-indigo-500 focus:outline-none transition shadow-inner"
+                  placeholder={mode === 'login' ? '••••••••' : 'Crea una contraseña segura'}
+                  className="w-full bg-sky-50/60 border border-sky-200 rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none transition shadow-sm"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -126,22 +127,30 @@ export function LoginScreen({ onAuthSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 transition disabled:opacity-50 active:scale-95 cursor-pointer"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               <span>{mode === 'login' ? 'Acceder al Pipeline' : 'Registrar y Continuar'}</span>
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-slate-800 text-xs text-slate-400">
+          <div className="text-center pt-3 border-t border-sky-100 text-xs text-slate-600">
             <span>{mode === 'login' ? '¿Deseas registrar un nuevo usuario?' : '¿Ya tienes una cuenta?'}</span>
             <button
               type="button"
               onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
+                if (mode === 'login') {
+                  setMode('register');
+                  setUsername('');
+                  setPassword('');
+                } else {
+                  setMode('login');
+                  setUsername('evaluador_interseguro');
+                  setPassword('interseguro2026');
+                }
                 setError('');
               }}
-              className="text-indigo-400 hover:text-indigo-300 font-semibold ml-1.5 underline cursor-pointer"
+              className="text-sky-600 hover:text-sky-700 font-bold ml-1.5 underline cursor-pointer"
             >
               {mode === 'login' ? 'Crear cuenta' : 'Inicia Sesión'}
             </button>
@@ -149,7 +158,7 @@ export function LoginScreen({ onAuthSuccess }) {
         </div>
 
         {/* Footer info */}
-        <p className="text-center text-[11px] text-slate-600">
+        <p className="text-center text-[11px] text-sky-800/70 font-medium">
           Evaluación Técnica Interseguro • División TI
         </p>
       </div>
