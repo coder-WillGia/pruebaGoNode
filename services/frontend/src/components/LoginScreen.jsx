@@ -60,7 +60,7 @@ export function LoginScreen({ onAuthSuccess }) {
             <Layers className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
-            Interseguro Matrix Pipeline
+            Interseguro Matrix
           </h1>
           <p className="text-[11px] sm:text-xs text-sky-800/80 font-medium max-w-xs mx-auto px-2">
             Factorización QR en Go, Analítica en Node.js y Persistencia en PostgreSQL

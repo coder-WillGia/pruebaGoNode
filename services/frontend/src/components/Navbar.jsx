@@ -12,7 +12,7 @@ export function Navbar({ user, onLogout }) {
           </div>
           <div className="min-w-0">
             <h1 className="font-extrabold text-sm sm:text-lg leading-tight text-slate-900 truncate">
-              Interseguro Matrix Pipeline
+              Interseguro Matrix
             </h1>
             <p className="text-[10px] sm:text-[11px] text-sky-700 font-medium truncate">Go + Node.js + PostgreSQL</p>
           </div>

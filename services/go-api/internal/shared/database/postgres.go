@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS matrix_analytics (
 
 -- Índices Idempotentes
 CREATE INDEX IF NOT EXISTS idx_matrix_operations_created_at ON matrix_operations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_matrix_operations_user_created ON matrix_operations(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_matrix_analytics_operation_id ON matrix_analytics(operation_id);
 
 -- Semilla inicial de matrices (solo si no existen)
