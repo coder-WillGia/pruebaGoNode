@@ -23,6 +23,12 @@ func (h *Handler) RegisterRoutes(router fiber.Router) {
 	group.Get("/history", h.GetHistory)
 }
 
+func (h *Handler) extractUserInfo(c *fiber.Ctx) (string, string) {
+	userID, _ := c.Locals("user_id").(string)
+	username, _ := c.Locals("username").(string)
+	return userID, username
+}
+
 func (h *Handler) ProcessMatrix(c *fiber.Ctx) error {
 	var req ProcessMatrixRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -30,7 +36,9 @@ func (h *Handler) ProcessMatrix(c *fiber.Ctx) error {
 	}
 
 	token := c.Get("Authorization")
-	result, err := h.service.ProcessMatrix(req.Matrix, token)
+	userID, username := h.extractUserInfo(c)
+
+	result, err := h.service.ProcessMatrix(req.Matrix, token, userID, username)
 	if err != nil {
 		return response.BadRequest(c, err.Error())
 	}
@@ -41,8 +49,9 @@ func (h *Handler) ProcessMatrix(c *fiber.Ctx) error {
 func (h *Handler) ProcessMatrixByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	token := c.Get("Authorization")
+	userID, username := h.extractUserInfo(c)
 
-	result, err := h.service.ProcessMatrixByID(id, token)
+	result, err := h.service.ProcessMatrixByID(id, token, userID, username)
 	if err != nil {
 		return response.BadRequest(c, err.Error())
 	}

@@ -83,6 +83,11 @@ func main() {
 	catalogHandler.RegisterRoutes(protected)
 	processingHandler.RegisterRoutes(protected)
 
+	// Servir Frontend SPA Interactivo
+	app.Static("/", "../frontend")
+	app.Static("/", "./frontend")
+	app.Static("/", "../../services/frontend")
+
 	// Iniciar Servidor
 	addr := ":" + cfg.Port
 	log.Printf("[Go API] Servidor escuchando en http://localhost%s", addr)

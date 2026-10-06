@@ -41,12 +41,14 @@ type NodeAnalysisData struct {
 }
 
 type ProcessMatrixResponse struct {
-	OriginalMatrix [][]float64      `json:"original_matrix"`
-	Dimensions     Dimensions       `json:"dimensions"`
-	Q              [][]float64      `json:"q"`
-	R              [][]float64      `json:"r"`
-	Analysis       NodeAnalysisData `json:"analysis"`
-	ExecutionTimeMs float64         `json:"execution_time_ms"`
+	OriginalMatrix  [][]float64      `json:"original_matrix"`
+	Dimensions      Dimensions       `json:"dimensions"`
+	Q               [][]float64      `json:"q"`
+	R               [][]float64      `json:"r"`
+	Analysis        NodeAnalysisData `json:"analysis"`
+	ExecutionTimeMs float64          `json:"execution_time_ms"`
+	UserID          string           `json:"user_id,omitempty"`
+	Username        string           `json:"username,omitempty"`
 }
 
 type Dimensions struct {
@@ -55,13 +57,15 @@ type Dimensions struct {
 }
 
 type MatrixOperationHistory struct {
-	ID              string           `json:"id"`
-	OriginalMatrix  [][]float64      `json:"original_matrix"`
-	MatrixQ         [][]float64      `json:"matrix_q"`
-	MatrixR         [][]float64      `json:"matrix_r"`
-	Rows            int              `json:"rows"`
-	Cols            int              `json:"cols"`
-	ExecutionTimeMs float64          `json:"execution_time_ms"`
+	ID              string            `json:"id"`
+	UserID          string            `json:"user_id,omitempty"`
+	Username        string            `json:"username,omitempty"`
+	OriginalMatrix  [][]float64       `json:"original_matrix"`
+	MatrixQ         [][]float64       `json:"matrix_q"`
+	MatrixR         [][]float64       `json:"matrix_r"`
+	Rows            int               `json:"rows"`
+	Cols            int               `json:"cols"`
+	ExecutionTimeMs float64           `json:"execution_time_ms"`
 	Analysis        *NodeAnalysisData `json:"analysis,omitempty"`
-	CreatedAt       time.Time        `json:"created_at"`
+	CreatedAt       time.Time         `json:"created_at"`
 }

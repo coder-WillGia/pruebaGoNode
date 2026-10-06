@@ -33,14 +33,21 @@ func (r *postgresRepository) SaveOperation(op *MatrixOperationHistory) (string, 
 		return "", err
 	}
 
+	var userIDParam interface{}
+	if op.UserID != "" {
+		userIDParam = op.UserID
+	} else {
+		userIDParam = nil
+	}
+
 	query := `
-		INSERT INTO matrix_operations (original_matrix, matrix_q, matrix_r, rows, cols, execution_time_ms)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO matrix_operations (user_id, original_matrix, matrix_q, matrix_r, rows, cols, execution_time_ms)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at
 	`
 
 	var opID string
-	err = r.db.QueryRow(query, origBytes, qBytes, rBytes, op.Rows, op.Cols, op.ExecutionTimeMs).Scan(&opID, &op.CreatedAt)
+	err = r.db.QueryRow(query, userIDParam, origBytes, qBytes, rBytes, op.Rows, op.Cols, op.ExecutionTimeMs).Scan(&opID, &op.CreatedAt)
 	if err != nil {
 		return "", fmt.Errorf("error al guardar operación matricial en BD: %w", err)
 	}
@@ -83,10 +90,12 @@ func (r *postgresRepository) GetHistory(limit int) ([]MatrixOperationHistory, er
 
 	query := `
 		SELECT 
-			o.id, o.original_matrix, o.matrix_q, o.matrix_r, o.rows, o.cols, o.execution_time_ms, o.created_at,
+			o.id, COALESCE(o.user_id::text, ''), COALESCE(u.username, 'Anónimo'),
+			o.original_matrix, o.matrix_q, o.matrix_r, o.rows, o.cols, o.execution_time_ms, o.created_at,
 			a.max_value, a.min_value, a.average_value, a.sum_value, a.total_elements,
 			a.is_q_diagonal, a.is_r_diagonal, a.is_any_diagonal
 		FROM matrix_operations o
+		LEFT JOIN users u ON o.user_id = u.id
 		LEFT JOIN matrix_analytics a ON o.id = a.operation_id
 		ORDER BY o.created_at DESC
 		LIMIT $1
@@ -107,7 +116,8 @@ func (r *postgresRepository) GetHistory(limit int) ([]MatrixOperationHistory, er
 		var isQDiag, isRDiag, isAnyDiag sql.NullBool
 
 		err := rows.Scan(
-			&item.ID, &origBytes, &qBytes, &rBytes, &item.Rows, &item.Cols, &item.ExecutionTimeMs, &item.CreatedAt,
+			&item.ID, &item.UserID, &item.Username,
+			&origBytes, &qBytes, &rBytes, &item.Rows, &item.Cols, &item.ExecutionTimeMs, &item.CreatedAt,
 			&maxVal, &minVal, &avgVal, &sumVal, &totalElems,
 			&isQDiag, &isRDiag, &isAnyDiag,
 		)
