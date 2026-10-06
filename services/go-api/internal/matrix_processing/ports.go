@@ -6,5 +6,5 @@ type NodeClientPort interface {
 
 type RepositoryPort interface {
 	SaveOperation(op *MatrixOperationHistory) (string, error)
-	GetHistory(limit int) ([]MatrixOperationHistory, error)
+	GetHistory(userID string, limit int) ([]MatrixOperationHistory, error)
 }

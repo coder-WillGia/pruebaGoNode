@@ -109,10 +109,10 @@ func (s *Service) ProcessMatrixByID(catalogID string, authToken string, userID s
 	return s.ProcessMatrix(item.MatrixData, authToken, userID, username)
 }
 
-// GetHistory retrieves the calculation log from the database.
-func (s *Service) GetHistory(limit int) ([]MatrixOperationHistory, error) {
+// GetHistory retrieves the calculation log from the database scoped to the user.
+func (s *Service) GetHistory(userID string, limit int) ([]MatrixOperationHistory, error) {
 	if s.repo == nil {
 		return nil, fmt.Errorf("repositorio de historial no disponible")
 	}
-	return s.repo.GetHistory(limit)
+	return s.repo.GetHistory(userID, limit)
 }

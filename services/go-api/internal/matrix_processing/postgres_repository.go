@@ -79,7 +79,7 @@ func (r *postgresRepository) SaveOperation(op *MatrixOperationHistory) (string, 
 	return opID, nil
 }
 
-func (r *postgresRepository) GetHistory(limit int) ([]MatrixOperationHistory, error) {
+func (r *postgresRepository) GetHistory(userID string, limit int) ([]MatrixOperationHistory, error) {
 	if r.db == nil {
 		return nil, errors.New("base de datos no disponible")
 	}
@@ -88,20 +88,41 @@ func (r *postgresRepository) GetHistory(limit int) ([]MatrixOperationHistory, er
 		limit = 20
 	}
 
-	query := `
-		SELECT 
-			o.id, COALESCE(o.user_id::text, ''), COALESCE(u.username, 'Anónimo'),
-			o.original_matrix, o.matrix_q, o.matrix_r, o.rows, o.cols, o.execution_time_ms, o.created_at,
-			a.max_value, a.min_value, a.average_value, a.sum_value, a.total_elements,
-			a.is_q_diagonal, a.is_r_diagonal, a.is_any_diagonal
-		FROM matrix_operations o
-		LEFT JOIN users u ON o.user_id = u.id
-		LEFT JOIN matrix_analytics a ON o.id = a.operation_id
-		ORDER BY o.created_at DESC
-		LIMIT $1
-	`
+	var query string
+	var rows *sql.Rows
+	var err error
 
-	rows, err := r.db.Query(query, limit)
+	if userID != "" {
+		query = `
+			SELECT 
+				o.id, COALESCE(o.user_id::text, ''), COALESCE(u.username, 'Anónimo'),
+				o.original_matrix, o.matrix_q, o.matrix_r, o.rows, o.cols, o.execution_time_ms, o.created_at,
+				a.max_value, a.min_value, a.average_value, a.sum_value, a.total_elements,
+				a.is_q_diagonal, a.is_r_diagonal, a.is_any_diagonal
+			FROM matrix_operations o
+			LEFT JOIN users u ON o.user_id = u.id
+			LEFT JOIN matrix_analytics a ON o.id = a.operation_id
+			WHERE o.user_id = $1::uuid
+			ORDER BY o.created_at DESC
+			LIMIT $2
+		`
+		rows, err = r.db.Query(query, userID, limit)
+	} else {
+		query = `
+			SELECT 
+				o.id, COALESCE(o.user_id::text, ''), COALESCE(u.username, 'Anónimo'),
+				o.original_matrix, o.matrix_q, o.matrix_r, o.rows, o.cols, o.execution_time_ms, o.created_at,
+				a.max_value, a.min_value, a.average_value, a.sum_value, a.total_elements,
+				a.is_q_diagonal, a.is_r_diagonal, a.is_any_diagonal
+			FROM matrix_operations o
+			LEFT JOIN users u ON o.user_id = u.id
+			LEFT JOIN matrix_analytics a ON o.id = a.operation_id
+			ORDER BY o.created_at DESC
+			LIMIT $1
+		`
+		rows, err = r.db.Query(query, limit)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("error consultando historial: %w", err)
 	}

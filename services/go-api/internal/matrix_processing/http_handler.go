@@ -62,8 +62,9 @@ func (h *Handler) ProcessMatrixByID(c *fiber.Ctx) error {
 func (h *Handler) GetHistory(c *fiber.Ctx) error {
 	limitStr := c.Query("limit", "20")
 	limit, _ := strconv.Atoi(limitStr)
+	userID, _ := h.extractUserInfo(c)
 
-	history, err := h.service.GetHistory(limit)
+	history, err := h.service.GetHistory(userID, limit)
 	if err != nil {
 		return response.InternalError(c, "Error al consultar historial de operaciones", err.Error())
 	}
