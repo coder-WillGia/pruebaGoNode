@@ -1,4 +1,4 @@
-# Build stage
+# --- ETAPA 1: Compilacion del Binario Go ---
 FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
@@ -10,17 +10,24 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /go-api ./cmd/api
+# Compilacion estatica optimizada sin simbolos de depuracion (-ldflags="-w -s")
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/go-api ./cmd/api
 
-# Run stage
+# --- ETAPA 2: Runtime de Produccion Ultra Ligero (Alpine) ---
 FROM alpine:3.20
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata
+# Certificados para conexiones SSL/TLS seguras (ej. Neon PostgreSQL) y zona horaria
+RUN apk add --no-cache ca-certificates tzdata \
+    && adduser -D -u 1000 appuser
 
-COPY --from=builder /go-api /app/go-api
+# Copiar unicamete el binario y plantilla de configuracion
+COPY --from=builder /app/go-api /app/go-api
 COPY .env.example /app/.env.example
+
+# Ejecucion con usuario no-root por seguridad
+USER appuser
 
 EXPOSE 3000
 

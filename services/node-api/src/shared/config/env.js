@@ -11,5 +11,5 @@ function getRequiredEnv(key) {
 
 export const env = {
   port: parseInt(getRequiredEnv('PORT'), 10),
-  nodeEnv: process.env.NODE_ENV || 'development'
+  nodeEnv: getRequiredEnv('NODE_ENV')
 };

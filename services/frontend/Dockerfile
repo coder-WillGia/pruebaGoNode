@@ -1,5 +1,5 @@
-# Build Stage con pnpm y Node
-FROM node:22-alpine AS build
+# --- ETAPA 1: Construccion de la SPA (React + Vite con pnpm) ---
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -11,16 +11,24 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-# Argumento para la URL del backend en tiempo de build
-ARG VITE_API_URL=http://localhost:3000
+# Variables de entorno inyectadas estrictamente sin valores por defecto quemados
+ARG VITE_API_URL
+ARG PORT
 ENV VITE_API_URL=$VITE_API_URL
+ENV PORT=$PORT
 
 RUN pnpm build
 
-# Production Stage con Nginx
+# --- ETAPA 2: Servidor Web Nginx de Produccion Ultra Ligero ---
 FROM nginx:alpine
 
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /usr/share/nginx/html
+
+# Limpiar archivos por defecto de nginx
+RUN rm -rf ./*
+
+# Copiar unicamete el bundle compilado
+COPY --from=builder /app/dist ./
 
 EXPOSE 80
 

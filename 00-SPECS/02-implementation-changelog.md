@@ -27,5 +27,12 @@
 
 ### 4. Scripts y DevOps
 - `services/go-api/dev.ps1`: Script corto de inicio rápido en PowerShell.
-- Dockerfiles independientes por servicio sin `docker-compose.yml` en la raíz.
-- `.env` encapsulados dentro de cada microservicio sin variables quemadas en el código.
+- **Dockerfiles Multi-Stage Optimizados**:
+  - `services/go-api/Dockerfile`: Etapa 1 compilador Go con `-ldflags="-w -s"` + Etapa 2 runtime ultra ligero Alpine con usuario no-root `appuser`.
+  - `services/node-api/Dockerfile`: Etapa 1 `pnpm install --prod` + Etapa 2 runtime Node.js Alpine 100% libre de herramientas de compilación con usuario `node`.
+  - `services/frontend/Dockerfile`: Etapa 1 `pnpm build` + Etapa 2 Nginx Alpine sirviendo los estáticos optimizados.
+- `.env` encapsulados dentro de cada microservicio sin variables quemadas en el código:
+  - Validación 100% estricta en los tres microservicios (Go, Node.js y Frontend). Se lanzan errores tempranos si falta alguna variable.
+  - Eliminado el paquete residual obsoleto `internal/middleware/auth.go` en Go para asegurar que toda la autenticación use exclusivamente el secreto del `.env` inyectado a través de `internal/auth/http_handler.go`.
+
+
