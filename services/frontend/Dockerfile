@@ -1,9 +1,9 @@
-# --- ETAPA 1: Construccion de la SPA (React + Vite con pnpm) ---
+# --- ETAPA 1: Construccion de la SPA (React + Vite con pnpm 9) ---
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 COPY package.json pnpm-lock.yaml ./
 
