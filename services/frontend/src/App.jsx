@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { AuthModal } from './components/AuthModal';
+import { LoginScreen } from './components/LoginScreen';
 import { MatrixInputPanel } from './components/MatrixInputPanel';
 import { MatrixVisualizer } from './components/MatrixVisualizer';
 import { AnalyticsCards } from './components/AnalyticsCards';
@@ -9,6 +9,17 @@ import { Calculator, History, AlertTriangle } from 'lucide-react';
 import { API_BASE } from './config/env.js';
 
 export function App() {
+  // Auth State
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('interseguro_user') || 'null');
+    } catch (_) {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('interseguro_token') || '');
+
+  // Matrix and UI State
   const [rows, setRows] = useState(3);
   const [cols, setCols] = useState(3);
   const [matrix, setMatrix] = useState([
@@ -21,18 +32,6 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
-
-  // Auth State (almacenado en sessionStorage / localStorage)
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('interseguro_user') || 'null');
-    } catch (_) {
-      return null;
-    }
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('interseguro_token') || '');
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState('login');
 
   const handleDimensionsChange = (newRows, newCols) => {
     setRows(newRows);
@@ -53,6 +52,7 @@ export function App() {
   const handleLogout = () => {
     setUser(null);
     setToken('');
+    setResult(null);
     localStorage.removeItem('interseguro_user');
     localStorage.removeItem('interseguro_token');
   };
@@ -87,17 +87,15 @@ export function App() {
     }
   };
 
+  // Si el usuario NO está autenticado, se muestra ÚNICAMENTE la pantalla de inicio de sesión
+  if (!user || !token) {
+    return <LoginScreen onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      {/* 1. Barra Superior con Autenticación JWT */}
-      <Navbar
-        user={user}
-        onOpenAuth={(mode) => {
-          setAuthModalMode(mode);
-          setAuthModalOpen(true);
-        }}
-        onLogout={handleLogout}
-      />
+      {/* 1. Barra Superior con Identidad del Usuario y Logout */}
+      <Navbar user={user} onLogout={handleLogout} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Navigation Tabs */}
@@ -177,15 +175,6 @@ export function App() {
           <AuditHistoryTable />
         )}
       </main>
-
-      {/* Modal de Autenticación */}
-      <AuthModal
-        isOpen={authModalOpen}
-        mode={authModalMode}
-        onClose={() => setAuthModalOpen(false)}
-        onAuthSuccess={handleAuthSuccess}
-        onToggleMode={() => setAuthModalMode((prev) => (prev === 'login' ? 'register' : 'login'))}
-      />
     </div>
   );
 }
