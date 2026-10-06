@@ -129,7 +129,7 @@ export function LoginScreen({ onAuthSuccess }) {
               className="w-full py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 transition disabled:opacity-50 active:scale-95 cursor-pointer"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              <span>{mode === 'login' ? 'Acceder al Pipeline' : 'Registrar y Continuar'}</span>
+              <span>{mode === 'login' ? 'Acceder' : 'Registrar y Continuar'}</span>
             </button>
           </form>
 
