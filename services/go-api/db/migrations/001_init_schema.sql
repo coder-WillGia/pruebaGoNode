@@ -80,3 +80,12 @@ INSERT INTO matrix_inputs (name, description, matrix_data, rows, cols) VALUES
     3
 )
 ON CONFLICT DO NOTHING;
+
+-- Semilla inicial de Usuario Evaluador (password: interseguro2026)
+INSERT INTO users (username, password_hash, role) VALUES
+(
+    'evaluador_interseguro',
+    '$2a$10$QMOW7oN8fY79yMH6eOnCBecU5Ww/DxX84IX1KQwZ9CDB2FMORUr.i',
+    'admin'
+)
+ON CONFLICT (username) DO NOTHING;

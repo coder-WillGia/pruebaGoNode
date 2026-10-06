@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS matrix_analytics (
 CREATE INDEX IF NOT EXISTS idx_matrix_operations_created_at ON matrix_operations(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_matrix_analytics_operation_id ON matrix_analytics(operation_id);
 
--- Semilla inicial de matrices de prueba en base de datos para no quemar datos en código
+-- Semilla inicial de matrices de prueba en base de datos
 INSERT INTO matrix_inputs (name, description, matrix_data, rows, cols) VALUES
 (
     'Matriz Reto 3x3',
@@ -78,4 +78,14 @@ INSERT INTO matrix_inputs (name, description, matrix_data, rows, cols) VALUES
     '[[5, 0, 0], [0, 8, 0], [0, 0, 12]]'::jsonb,
     3,
     3
-);
+)
+ON CONFLICT DO NOTHING;
+
+-- Semilla inicial de Usuario Evaluador (password: interseguro2026)
+INSERT INTO users (username, password_hash, role) VALUES
+(
+    'evaluador_interseguro',
+    '$2a$10$QMOW7oN8fY79yMH6eOnCBecU5Ww/DxX84IX1KQwZ9CDB2FMORUr.i',
+    'admin'
+)
+ON CONFLICT (username) DO NOTHING;
