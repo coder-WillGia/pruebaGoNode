@@ -10,19 +10,19 @@ El proyecto implementa el patrón **Hexagonal Architecture + Vertical Slices (Sc
 
 ```mermaid
 flowchart TD
-    Cliente["👤 Usuario (Frontend React / Postman)"] -->|1. POST /api/v1/matrix/process| GoAPI["🚀 API 1: Go (Fiber) :3000\n(API Gateway, Cómputo QR, Auth & Persistencia)"]
+    Cliente["👤 Usuario (Frontend React / Postman)"] -->|"1. POST /api/v1/matrix/process"| GoAPI["🚀 API 1: Go (Fiber) :3000\n(API Gateway, Cómputo QR, Auth y Persistencia)"]
     
-    subgraph "Microservicio 1: Go (Fiber)"
-        GoAPI <-->|Auto-Migración Idempotente & Auditoría| DB[("🗄️ PostgreSQL (Neon)\nmatrix_challenge_db")]
+    subgraph S1 ["Microservicio 1: Go (Fiber)"]
+        GoAPI <-->|"Auto-Migración Idempotente y Auditoría"| DB[("🗄️ PostgreSQL (Neon)\nmatrix_challenge_db")]
     end
     
-    subgraph "Microservicio 2: Node.js (Express)"
+    subgraph S2 ["Microservicio 2: Node.js (Express)"]
         NodeAPI["⚡ API 2: Node.js (Express) :4000\n(Stateless Analytics Engine - Sin BD)"]
     end
     
-    GoAPI -->|2. POST /api/v1/matrix/analyze\nPayload: { q: [...], r: [...] }| NodeAPI
-    NodeAPI -->|3. Retorna JSON de Estadísticas| GoAPI
-    GoAPI -->|4. Respuesta Consolidada Final + Auditoría| Cliente
+    GoAPI -->|"2. POST /api/v1/matrix/analyze (Payload: Q y R)"| NodeAPI
+    NodeAPI -->|"3. Retorna JSON de Estadísticas"| GoAPI
+    GoAPI -->|"4. Respuesta Consolidada Final y Auditoría"| Cliente
 ```
 
 ### 🎯 Responsabilidades por Microservicio:
