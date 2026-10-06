@@ -46,18 +46,34 @@ flowchart TD
 
 ## 🚀 Cómo Ejecutar el Proyecto
 
-### Opción 1: Con Docker Compose (Recomendado)
+### Opción 1: Con Docker (Imágenes Individuales por Microservicio)
+
+Para levantar el entorno idéntico a producción (como en Render, AWS o Railway):
 
 ```bash
-# 1. Clonar el repositorio
-git clone <URL_DE_TU_REPOSITORIO>
-cd pruebaGoNode
+# 1. Crear red interna de Docker
+docker network create interseguro-network
 
-# 2. Levantar ambos microservicios con Docker Compose
-docker compose up --build
+# 2. Construir y correr Node.js API (:4000)
+cd services/node-api
+docker build -t interseguro-node-api .
+docker run -d --name node-api --network interseguro-network -p 4000:4000 interseguro-node-api
+
+# 3. Construir y correr Go API (:3000)
+cd ../go-api
+docker build -t interseguro-go-api .
+docker run -d --name go-api --network interseguro-network -p 3000:3000 \
+  -e PORT=3000 \
+  -e DATABASE_URL="postgresql://neondb_owner:npg_IACVv2Be4zSg@ep-cool-band-b506sy3m-pooler.c-7.us-east-2.aws.neon.tech/matrix_challenge_db?sslmode=require" \
+  -e NODE_API_URL="http://node-api:4000" \
+  -e JWT_SECRET="interseguro_challenge_secure_jwt_secret_key_2026" \
+  interseguro-go-api
+
+# 4. Construir y correr Frontend React (:8080)
+cd ../frontend
+docker build -t interseguro-frontend .
+docker run -d --name frontend --network interseguro-network -p 8080:80 interseguro-frontend
 ```
-* Go API estará disponible en: `http://localhost:3000`
-* Node API estará disponible en: `http://localhost:4000`
 
 ---
 
