@@ -1,0 +1,249 @@
+{
+  "info": {
+    "_postman_id": "c7a8b9d0-1234-5678-9abc-def012345678",
+    "name": "Interseguro Challenge - Matrix Pipeline (Go + Node.js)",
+    "description": "Colección completa de endpoints para el Reto Técnico de Interseguro. Flujo de Factorización QR en Go (Fiber), Estadísticas y Verificación Diagonal en Node.js (Express), y Persistencia en PostgreSQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Flujo Principal (Go API :3000)",
+      "item": [
+        {
+          "name": "Procesar Matriz 3x3 (Factorización QR + Estadísticas)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matrix\": [\n    [12, -51, 4],\n    [6, 167, -68],\n    [-4, 24, -41]\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrix/process",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrix", "process"]
+            },
+            "description": "Calcula Factorización QR en Go, envía Q y R a Node.js para obtener Max, Min, Promedio, Suma y estado de Matriz Diagonal, y guarda la operación en BD."
+          }
+        },
+        {
+          "name": "Procesar Matriz Rectangular 4x2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matrix\": [\n    [1, 2],\n    [3, 4],\n    [5, 6],\n    [7, 8]\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrix/process",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrix", "process"]
+            },
+            "description": "Prueba de matriz rectangular m > n con el algoritmo Gram-Schmidt Modificado."
+          }
+        },
+        {
+          "name": "Procesar Matriz por ID (Catálogo BD)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrix/process/6f48b96f-7e84-417a-83a6-c1ac2569335e",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrix", "process", "6f48b96f-7e84-417a-83a6-c1ac2569335e"]
+            },
+            "description": "Ejecuta el procesamiento de una matriz precargada en la base de datos PostgreSQL."
+          }
+        },
+        {
+          "name": "Consultar Historial de Operaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrix/history?limit=20",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrix", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Recupera de la base de datos todas las matrices procesadas con sus resultados Q, R y analíticas."
+          }
+        },
+        {
+          "name": "Health Check Go API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{go_url}}/health",
+              "host": ["{{go_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catálogo de Matrices (Go API :3000)",
+      "item": [
+        {
+          "name": "Listar Todas las Matrices Guardadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrices",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrices"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Matriz Guardada por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrices/6f48b96f-7e84-417a-83a6-c1ac2569335e",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrices", "6f48b96f-7e84-417a-83a6-c1ac2569335e"]
+            }
+          }
+        },
+        {
+          "name": "Crear Nueva Matriz en Catálogo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Matriz de Prueba Postman 2x2\",\n  \"description\": \"Matriz guardada dinámicamente desde Postman\",\n  \"matrix_data\": [\n    [10, 20],\n    [30, 40]\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{go_url}}/api/v1/matrices",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "matrices"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. API Directa Node.js (Analítica :4000)",
+      "item": [
+        {
+          "name": "Analizar Matrices Q y R (Cálculo Estadístico Directo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": [\n    [0.857143, -0.394286, 0.331429],\n    [0.428571, 0.902857, -0.034286],\n    [-0.285714, 0.171429, 0.942857]\n  ],\n  \"r\": [\n    [14, 21, -14],\n    [0, 175, -70],\n    [0, 0, -35]\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{node_url}}/api/v1/matrix/analyze",
+              "host": ["{{node_url}}"],
+              "path": ["api", "v1", "matrix", "analyze"]
+            },
+            "description": "Endpoint directo en Node.js que calcula en memoria Max, Min, Promedio, Suma y Verificación Diagonal."
+          }
+        },
+        {
+          "name": "Health Check Node API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{node_url}}/health",
+              "host": ["{{node_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Seguridad & Autenticación (JWT)",
+      "item": [
+        {
+          "name": "Registrar Usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"evaluador_interseguro\",\n  \"password\": \"interseguro2026\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{go_url}}/api/v1/auth/register",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login y Obtención de Token JWT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"evaluador_interseguro\",\n  \"password\": \"interseguro2026\"\n}"
+            },
+            "url": {
+              "raw": "{{go_url}}/api/v1/auth/login",
+              "host": ["{{go_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "go_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "node_url",
+      "value": "http://localhost:4000"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+# Dependencias y artefactos de compilación
+node_modules/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Variables de entorno secretas (no versionar credenciales reales)
+.env
+services/go-api/.env
+services/node-api/.env
+
+# Logs y temporales
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+temp/
+.temp/
+
+# Sistema Operativo y Editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Antigravity y Harness temporales
+.antigravity/rsc/
+.rsc/backups/
