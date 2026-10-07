@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { LoginScreen } from './components/LoginScreen';
 import { MatrixInputPanel } from './components/MatrixInputPanel';
@@ -32,6 +32,13 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+
+  // Precalentamiento de Render (Warmup ping en segundo plano al montar)
+  useEffect(() => {
+    fetch(`${API_BASE}/health`).catch(() => {
+      // Silencioso: solo busca despertar el contenedor de Render
+    });
+  }, []);
 
   const handleDimensionsChange = (newRows, newCols) => {
     setRows(newRows);

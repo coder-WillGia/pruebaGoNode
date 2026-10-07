@@ -42,7 +42,7 @@ func NewNodeClient(baseURL string) *NodeClient {
 	return &NodeClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 75 * time.Second,
 		},
 	}
 }
@@ -56,13 +56,13 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 
 	url := fmt.Sprintf("%s/api/v1/matrix/analyze", c.baseURL)
 
-	// Ventana de tolerancia extendida a 5 minutos (60 intentos * 5 segundos = 300s)
-	const maxAttempts = 60
+	// Ventana optimizada para Render Free Tier
+	const maxAttempts = 2
 	var lastErr error
 	var lastStatusCode int
 	var lastBodyBytes []byte
 
-	delay := 5 * time.Second
+	delay := 3 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
@@ -78,24 +78,24 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			lastErr = err
-			log.Printf("[NodeClientLegacy] Intento %d/%d falló al conectar con Node.js API (%s): %v. Reintentando en %v...", attempt, maxAttempts, url, err, delay)
+			log.Printf("[NodeClientLegacy] Intento %d/%d falló al conectar con Node.js API (%s): %v.", attempt, maxAttempts, url, err)
 			if attempt < maxAttempts {
 				time.Sleep(delay)
 				continue
 			}
-			return nil, fmt.Errorf("error conectando con Node.js API en %s tras 5 minutos de intentos (%d intentos, posible inicio en frío): %w", url, maxAttempts, lastErr)
+			return nil, fmt.Errorf("error conectando con Node.js API en %s (posible inicio en frío): %w", url, lastErr)
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			lastErr = err
-			log.Printf("[NodeClientLegacy] Intento %d/%d: error leyendo respuesta: %v. Reintentando...", attempt, maxAttempts, err)
+			log.Printf("[NodeClientLegacy] Intento %d/%d: error leyendo respuesta: %v.", attempt, maxAttempts, err)
 			if attempt < maxAttempts {
 				time.Sleep(delay)
 				continue
 			}
-			return nil, fmt.Errorf("error leyendo respuesta de Node.js API tras 5 minutos: %w", err)
+			return nil, fmt.Errorf("error leyendo respuesta de Node.js API: %w", err)
 		}
 
 		lastStatusCode = resp.StatusCode
@@ -103,7 +103,7 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 
 		// Detectar inicio en frío / suspensión de Render (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
 		if resp.StatusCode == http.StatusBadGateway || resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusGatewayTimeout {
-			log.Printf("[NodeClientLegacy] Intento %d/%d: Node.js API devolvió código %d (Render arrancando en frío). Esperando %v antes del siguiente intento...", attempt, maxAttempts, resp.StatusCode, delay)
+			log.Printf("[NodeClientLegacy] Intento %d/%d: Node.js API devolvió código %d (Render arrancando en frío). Esperando %v...", attempt, maxAttempts, resp.StatusCode, delay)
 			if attempt < maxAttempts {
 				time.Sleep(delay)
 				continue
@@ -122,7 +122,7 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 
 		// Éxito (2xx)
 		if attempt > 1 {
-			log.Printf("[NodeClientLegacy] Conexión establecida con éxito con Node.js API tras %d intento(s)", attempt)
+			log.Printf("[NodeClientLegacy] Conexión establecida con éxito con Node.js API tras reintento %d", attempt)
 		}
 
 		var analysisResp NodeAnalysisResponse
@@ -137,11 +137,10 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 		return &analysisResp, nil
 	}
 
-	// Si se agotaron los intentos con código 502/503/504 tras los 5 minutos de espera
 	bodyStr := strings.TrimSpace(string(lastBodyBytes))
 	if strings.Contains(bodyStr, "<html") || strings.Contains(bodyStr, "<!DOCTYPE") {
-		return nil, fmt.Errorf("Node.js API no respondió a tiempo tras 5 minutos de espera (%d intentos, código %d - inicio en frío de Render en progreso). Por favor, reintenta en unos momentos", maxAttempts, lastStatusCode)
+		return nil, fmt.Errorf("Node.js API aún está iniciando (código %d). Por favor, intenta de nuevo en unos segundos mientras el servicio termina de arrancar.", lastStatusCode)
 	}
 
-	return nil, fmt.Errorf("Node.js API devolvió código %d tras 5 minutos de espera (%d intentos): %s", lastStatusCode, maxAttempts, bodyStr)
+	return nil, fmt.Errorf("Node.js API devolvió código %d: %s", lastStatusCode, bodyStr)
 }
