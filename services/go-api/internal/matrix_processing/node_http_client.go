@@ -21,7 +21,7 @@ func NewNodeHTTPClient(baseURL string) NodeClientPort {
 	return &nodeHTTPClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 75 * time.Second,
+			Timeout: 15 * time.Second,
 		},
 	}
 }
@@ -40,16 +40,16 @@ func (c *nodeHTTPClient) AnalyzeMatrices(qr *QRResult, authToken string) (*NodeA
 
 	url := fmt.Sprintf("%s/api/v1/matrix/analyze", c.baseURL)
 
-	// Estrategia optimizada para Render Free Tier (Cold Starts):
-	// Intento 1: Timeout de 75s para dar tiempo a Render de levantar el contenedor de Node.js.
-	// Intento 2: Reintento de respaldo tras 3s si Render devolvió 502/503 temporal durante el arranque.
-	// Tiempo total máximo ~80s, manteniéndose seguro bajo el límite de 100s del proxy de Render/Cloudflare.
-	const maxAttempts = 2
+	// Estrategia de sondeo para Render Free Tier (Cold Starts):
+	// Render responde 502 de inmediato mientras levanta el contenedor (~30-45s).
+	// Sondeamos hasta 15 intentos cada 4 segundos (total ~60s de espera tolerante),
+	// permitiendo que Node.js termine de iniciar y devuelva 200 OK dentro del límite del gateway.
+	const maxAttempts = 15
 	var lastErr error
 	var lastStatusCode int
 	var lastBodyBytes []byte
 
-	delay := 3 * time.Second
+	delay := 4 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
@@ -65,19 +65,19 @@ func (c *nodeHTTPClient) AnalyzeMatrices(qr *QRResult, authToken string) (*NodeA
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			lastErr = err
-			log.Printf("[NodeClient] Intento %d/%d falló al conectar con Node.js API (%s): %v.", attempt, maxAttempts, url, err)
+			log.Printf("[NodeClient] Intento %d/%d falló al conectar con Node.js API (%s): %v. Reintentando en %v...", attempt, maxAttempts, url, err, delay)
 			if attempt < maxAttempts {
 				time.Sleep(delay)
 				continue
 			}
-			return nil, fmt.Errorf("no se pudo conectar con la API de Node.js en %s (posible inicio en frío): %w", url, lastErr)
+			return nil, fmt.Errorf("no se pudo conectar con la API de Node.js en %s (posible inicio en frío de Render en progreso): %w", url, lastErr)
 		}
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			lastErr = err
-			log.Printf("[NodeClient] Intento %d/%d: error leyendo cuerpo de respuesta: %v.", attempt, maxAttempts, err)
+			log.Printf("[NodeClient] Intento %d/%d: error leyendo cuerpo de respuesta: %v. Reintentando en %v...", attempt, maxAttempts, err, delay)
 			if attempt < maxAttempts {
 				time.Sleep(delay)
 				continue
@@ -109,7 +109,7 @@ func (c *nodeHTTPClient) AnalyzeMatrices(qr *QRResult, authToken string) (*NodeA
 
 		// Éxito (2xx)
 		if attempt > 1 {
-			log.Printf("[NodeClient] Conexión establecida con éxito con Node.js API tras reintento %d", attempt)
+			log.Printf("[NodeClient] Conexión establecida con éxito con Node.js API tras reintento %d (%v transcurridos aprox)", attempt, time.Duration(attempt-1)*delay)
 		}
 
 		var envelope nodeAPIResponseEnvelope
@@ -127,7 +127,7 @@ func (c *nodeHTTPClient) AnalyzeMatrices(qr *QRResult, authToken string) (*NodeA
 	// Si se agotaron los intentos con código 502/503/504
 	bodyStr := strings.TrimSpace(string(lastBodyBytes))
 	if strings.Contains(bodyStr, "<html") || strings.Contains(bodyStr, "<!DOCTYPE") {
-		return nil, fmt.Errorf("Node.js API aún está iniciando (código %d). Por favor, intenta de nuevo en unos segundos mientras el servicio termina de arrancar.", lastStatusCode)
+		return nil, fmt.Errorf("Node.js API aún está iniciando (código %d tras varios intentos de espera). Por favor, reintenta en unos segundos mientras termina de inicializar.", lastStatusCode)
 	}
 
 	return nil, fmt.Errorf("Node.js API devolvió código %d: %s", lastStatusCode, bodyStr)
