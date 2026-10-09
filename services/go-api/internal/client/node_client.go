@@ -47,8 +47,56 @@ func NewNodeClient(baseURL string) *NodeClient {
 	}
 }
 
+func (c *NodeClient) ensureServiceAwake() error {
+	healthURL := fmt.Sprintf("%s/health", c.baseURL)
+	const maxAttempts = 15
+	delay := 4 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		req, err := http.NewRequest("GET", healthURL, nil)
+		if err != nil {
+			return fmt.Errorf("error creando petición wake-up GET a Node API: %w", err)
+		}
+
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InterseguroMatrix/1.0")
+		req.Header.Set("Accept", "application/json, text/plain, */*")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			log.Printf("[NodeClientLegacy] Wake-up Intento %d/%d: Node.js API (%s) no respondió aún (%v). Reintentando en %v...", attempt, maxAttempts, healthURL, err, delay)
+			if attempt < maxAttempts {
+				time.Sleep(delay)
+				continue
+			}
+			return fmt.Errorf("no se pudo despertar la API de Node.js en %s: %w", healthURL, err)
+		}
+
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			if attempt > 1 {
+				log.Printf("[NodeClientLegacy] Node.js API despertó exitosamente tras %d intentos (%v)", attempt, time.Duration(attempt-1)*delay)
+			}
+			return nil
+		}
+
+		log.Printf("[NodeClientLegacy] Wake-up Intento %d/%d: Node.js API devolvió status %d (iniciando en frío). Esperando %v...", attempt, maxAttempts, resp.StatusCode, delay)
+		if attempt < maxAttempts {
+			time.Sleep(delay)
+			continue
+		}
+	}
+
+	return fmt.Errorf("Node.js API no respondió a tiempo tras los intentos de inicio en frío")
+}
+
 // SendForAnalysis sends Q and R matrices to Node.js Express API with retry support for cold starts.
 func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*NodeAnalysisResponse, error) {
+	if err := c.ensureServiceAwake(); err != nil {
+		return nil, fmt.Errorf("error al iniciar conexión con Node.js API: %w", err)
+	}
+
 	payloadBytes, err := json.Marshal(qrResult)
 	if err != nil {
 		return nil, fmt.Errorf("error serializando matrices Q y R: %w", err)
@@ -56,91 +104,44 @@ func (c *NodeClient) SendForAnalysis(qrResult *matrix.QRResult, token string) (*
 
 	url := fmt.Sprintf("%s/api/v1/matrix/analyze", c.baseURL)
 
-	// Ventana optimizada para Render Free Tier (sondeo de cold start)
-	const maxAttempts = 15
-	var lastErr error
-	var lastStatusCode int
-	var lastBodyBytes []byte
-
-	delay := 4 * time.Second
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
-		if err != nil {
-			return nil, fmt.Errorf("error creando petición HTTP a Node API: %w", err)
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		if token != "" {
-			req.Header.Set("Authorization", token)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			lastErr = err
-			log.Printf("[NodeClientLegacy] Intento %d/%d falló al conectar con Node.js API (%s): %v. Reintentando en %v...", attempt, maxAttempts, url, err, delay)
-			if attempt < maxAttempts {
-				time.Sleep(delay)
-				continue
-			}
-			return nil, fmt.Errorf("error conectando con Node.js API en %s (posible inicio en frío): %w", url, lastErr)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			lastErr = err
-			log.Printf("[NodeClientLegacy] Intento %d/%d: error leyendo respuesta: %v. Reintentando en %v...", attempt, maxAttempts, err, delay)
-			if attempt < maxAttempts {
-				time.Sleep(delay)
-				continue
-			}
-			return nil, fmt.Errorf("error leyendo respuesta de Node.js API: %w", err)
-		}
-
-		lastStatusCode = resp.StatusCode
-		lastBodyBytes = body
-
-		// Detectar inicio en frío / suspensión de Render (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
-		if resp.StatusCode == http.StatusBadGateway || resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusGatewayTimeout {
-			log.Printf("[NodeClientLegacy] Intento %d/%d: Node.js API devolvió código %d (Render arrancando en frío). Esperando %v...", attempt, maxAttempts, resp.StatusCode, delay)
-			if attempt < maxAttempts {
-				time.Sleep(delay)
-				continue
-			}
-			break
-		}
-
-		// Errores de cliente (4xx) o del servidor no recuperables inmediatamente
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			bodyStr := strings.TrimSpace(string(body))
-			if strings.Contains(bodyStr, "<html") || strings.Contains(bodyStr, "<!DOCTYPE") {
-				bodyStr = fmt.Sprintf("Error HTTP %d recibido de la infraestructura", resp.StatusCode)
-			}
-			return nil, fmt.Errorf("Node.js API devolvió código %d: %s", resp.StatusCode, bodyStr)
-		}
-
-		// Éxito (2xx)
-		if attempt > 1 {
-			log.Printf("[NodeClientLegacy] Conexión establecida con éxito con Node.js API tras reintento %d", attempt)
-		}
-
-		var analysisResp NodeAnalysisResponse
-		if err := json.Unmarshal(body, &analysisResp); err != nil {
-			return nil, fmt.Errorf("error decodificando respuesta de Node.js API: %w", err)
-		}
-
-		if analysisResp.Status != "success" && analysisResp.Status != "" {
-			return nil, errors.New(analysisResp.Message)
-		}
-
-		return &analysisResp, nil
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("error creando petición HTTP a Node API: %w", err)
 	}
 
-	bodyStr := strings.TrimSpace(string(lastBodyBytes))
-	if strings.Contains(bodyStr, "<html") || strings.Contains(bodyStr, "<!DOCTYPE") {
-		return nil, fmt.Errorf("Node.js API aún está iniciando (código %d tras varios intentos de espera). Por favor, reintenta en unos segundos mientras el servicio termina de arrancar.", lastStatusCode)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InterseguroMatrix/1.0")
+	if token != "" {
+		req.Header.Set("Authorization", token)
 	}
 
-	return nil, fmt.Errorf("Node.js API devolvió código %d: %s", lastStatusCode, bodyStr)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error conectando con Node.js API en %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error leyendo respuesta de Node.js API: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyStr := strings.TrimSpace(string(body))
+		if strings.Contains(bodyStr, "<html") || strings.Contains(bodyStr, "<!DOCTYPE") {
+			bodyStr = fmt.Sprintf("Error HTTP %d recibido de la infraestructura", resp.StatusCode)
+		}
+		return nil, fmt.Errorf("Node.js API devolvió código %d: %s", resp.StatusCode, bodyStr)
+	}
+
+	var analysisResp NodeAnalysisResponse
+	if err := json.Unmarshal(body, &analysisResp); err != nil {
+		return nil, fmt.Errorf("error decodificando respuesta de Node.js API: %w", err)
+	}
+
+	if analysisResp.Status != "success" && analysisResp.Status != "" {
+		return nil, errors.New(analysisResp.Message)
+	}
+
+	return &analysisResp, nil
 }
